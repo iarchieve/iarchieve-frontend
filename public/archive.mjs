@@ -19,11 +19,25 @@ function element(tag, value, className) {
 
 async function start() {
   const form = document.querySelector('#search');
+  const panel = document.querySelector('#records');
   const reset = document.querySelector('#reset');
   const status = document.querySelector('#status');
   const results = document.querySelector('#results');
   const [query, topic, publisher, year] = ['query', 'topic', 'publisher', 'year']
     .map(id => document.getElementById(id));
+  let render = () => {};
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    panel.hidden = false;
+    render();
+    panel.scrollIntoView();
+  });
+  for (const button of form.querySelectorAll('[data-query]')) {
+    button.addEventListener('click', () => {
+      query.value = button.dataset.query;
+      form.requestSubmit();
+    });
+  }
   try {
     const response = await fetch(new URL('./records.json', import.meta.url));
     if (!response.ok) throw new Error('Archive unavailable');
@@ -37,7 +51,7 @@ async function start() {
       if (select === year) options.reverse();
       for (const value of options) select.add(new Option(value, value));
     }
-    function render() {
+    render = () => {
       const matches = filterRecords(records, {
         query: query.value, topic: topic.value, publisher: publisher.value, year: year.value
       });
@@ -52,12 +66,7 @@ async function start() {
         row.append(element('span', record.date || '날짜 미등록', 'date'), detail, link);
         return row;
       }));
-    }
-    form.addEventListener('submit', event => {
-      event.preventDefault();
-      render();
-      document.querySelector('#records').scrollIntoView();
-    });
+    };
     for (const input of [topic, publisher, year]) input.addEventListener('change', render);
     reset.addEventListener('click', () => {
       for (const input of [query, topic, publisher, year]) input.value = '';
