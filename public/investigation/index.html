@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>조사 범위 선택 · 아이아카이브</title>
+<link rel="stylesheet" href="../styles.css">
+<script type="module" src="./setup.mjs"></script>
+</head>
+<body>
+<header class="wrap"><a class="brand" href="../">iarchieve<span>.</span></a></header>
+<main class="wrap records">
+  <p class="eyebrow">INVESTIGATION</p>
+  <h1 style="font-size:clamp(2rem,5vw,3.2rem)">조사 범위 선택</h1>
+  <p>현재 선택할 수 있는 지역은 대한민국과 인천입니다.</p>
+  <form id="investigation" class="scope-form">
+    <label>국가 <select name="country" required><option value="">국가 선택</option><option value="KR">대한민국</option></select></label>
+    <label>도시 <select name="city" disabled><option value="">국가 전체</option><option value="incheon">인천광역시</option></select></label>
+    <label for="field-filter">분야 찾기</label>
+    <input id="field-filter" type="search" placeholder="예: 금융, 종교, 인공지능">
+    <fieldset><legend>분야 선택</legend>
+      <p id="selection" role="status">전체 분야</p>
+      <div id="fields" class="field-list"></div>
+    </fieldset>
+    <label>직접 입력 <input name="custom" maxlength="250" placeholder="여러 분야는 쉼표로 구분"></label>
+    <label>사건 또는 질문 <input name="question" required maxlength="200" placeholder="예: 인천e음 사업은 어떻게 시작됐나요?"></label>
+    <button type="submit">조사 범위 확인</button>
+  </form>
+  <p id="confirmation" role="status"></p>
+  <noscript>조사 범위를 선택하려면 JavaScript를 켜세요.</noscript>
+</main>
+</body>
+</html>
