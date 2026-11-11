@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>iarchieve | Advertising Console</title>
+<style>
+body{margin:0;background:#0b1220;color:#eef4ff;font-family:Arial,"Malgun Gothic",sans-serif}
+header{padding:24px 5%;border-bottom:1px solid #28344a}
+h1{margin:0;font-size:26px}h2{font-size:20px}
+main{max-width:1100px;margin:35px auto;padding:0 20px}
+nav{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:25px}
+button{background:#35cbb5;border:0;border-radius:8px;padding:12px 18px;cursor:pointer;font-weight:bold}
+section{background:#151f31;padding:24px;border-radius:14px;margin-bottom:22px}
+input,select{box-sizing:border-box;width:100%;padding:12px;margin:8px 0 16px;background:#0b1220;color:white;border:1px solid #41516a;border-radius:7px}
+table{width:100%;border-collapse:collapse}
+td,th{padding:12px;text-align:left;border-bottom:1px solid #344158}
+small{color:#aab8cd}
+</style>
+</head>
+<body>
+<header><h1>iarchieve · Global Advertising Console</h1>
+<small>DSP / SSP Sandbox · 실제 결제 및 광고 송출 없음</small></header>
+<main>
+<nav>
+<button onclick="show('advertiser')">광고주 DSP</button>
+<button onclick="show('publisher')">매체사 SSP</button>
+<button onclick="show('records')">등록 현황</button>
+</nav>
+
+<section id="advertiser">
+<h2>광고 캠페인 등록</h2>
+<form id="campaignForm">
+<label>캠페인 이름<input name="name" required maxlength="100"></label>
+<label>일일 예산 (KRW)<input name="budget" type="number" min="1" step="1" required></label>
+<label>광고 유형
+<select name="type"><option>Display</option><option>Video</option><option>Native</option></select>
+</label>
+<button type="submit">캠페인 등록</button>
+</form>
+</section>
+
+<section id="publisher" hidden>
+<h2>광고 지면 등록</h2>
+<form id="placementForm">
+<label>매체 이름<input name="name" required maxlength="100"></label>
+<label>지면 이름<input name="placement" required maxlength="100"></label>
+<label>최저 CPM (KRW)<input name="cpm" type="number" min="1" step="1" required></label>
+<button type="submit">지면 등록</button>
+</form>
+</section>
+
+<section id="records" hidden>
+<h2>샌드박스 등록 현황</h2>
+<div id="results"></div>
+<button onclick="exportData()">JSON 내보내기</button>
+</section>
+</main>
+
+<script>
+const KEY="iarchieve_ads_sandbox_v1";
+function load(){
+ try{
+  const data=JSON.parse(localStorage.getItem(KEY)||'{}');
+  return {
+   campaigns:Array.isArray(data.campaigns)?data.campaigns:[],
+   placements:Array.isArray(data.placements)?data.placements:[]
+  };
+ }catch{return {campaigns:[],placements:[]};}
+}
+function save(data){localStorage.setItem(KEY,JSON.stringify(data));}
+function show(id){
+ document.querySelectorAll('main section').forEach(s=>s.hidden=s.id!==id);
+ if(id==='records')render();
+}
+function addRow(table,values){
+ const tr=document.createElement('tr');
+ values.forEach(value=>{
+  const td=document.createElement('td');
+  td.textContent=String(value);
+  tr.appendChild(td);
+ });
+ table.appendChild(tr);
+}
+function render(){
+ const data=load(),root=document.getElementById('results');
+ root.replaceChildren();
+ for(const [title,rows,fields] of [
+  ['캠페인',data.campaigns,['name','budget','type']],
+  ['광고 지면',data.placements,['name','placement','cpm']]
+ ]){
+  const heading=document.createElement('h3');
+  heading.textContent=title+' ('+rows.length+')';
+  root.appendChild(heading);
+  const table=document.createElement('table');
+  const head=document.createElement('tr');
+  fields.forEach(f=>{
+   const th=document.createElement('th');th.textContent=f;head.appendChild(th);
+  });
+  table.appendChild(head);
+  rows.forEach(row=>addRow(table,fields.map(f=>row[f])));
+  root.appendChild(table);
+ }
+}
+document.getElementById('campaignForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ const f=e.target,d=load(),v=Object.fromEntries(new FormData(f));
+ d.campaigns.push({...v,id:crypto.randomUUID(),createdAt:new Date().toISOString()});
+ save(d);f.reset();show('records');
+});
+document.getElementById('placementForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ const f=e.target,d=load(),v=Object.fromEntries(new FormData(f));
+ d.placements.push({...v,id:crypto.randomUUID(),createdAt:new Date().toISOString()});
+ save(d);f.reset();show('records');
+});
+function exportData(){
+ const blob=new Blob([JSON.stringify(load(),null,2)],{type:'application/json'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download='iarchieve-ads-sandbox.json';
+ a.click();
+ setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+</script>
+</body>
+</html>
