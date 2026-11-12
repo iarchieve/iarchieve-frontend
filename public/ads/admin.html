@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>iarchieve Ads</title>
+  <link rel="stylesheet" href="./admin.css">
+  <script type="module" src="./admin.mjs"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/ads/">iarchieve <span>Ads</span></a>
+    <div class="language">
+      <label for="language" data-i18n="language">Language</label>
+      <select id="language" aria-label="Language"></select>
+    </div>
+  </header>
+  <main class="layout">
+    <div class="heading">
+      <div>
+        <h1 data-i18n="title">Advertising administration</h1>
+        <p id="connection" role="status" aria-live="polite"></p>
+      </div>
+      <button id="refresh" type="button" data-i18n="refresh">Refresh</button>
+    </div>
+    <nav class="tabs" aria-label="Administration">
+      <button type="button" data-tab="accounts" data-i18n="accounts" aria-current="page">Publishers</button>
+      <button type="button" data-tab="credentials" data-i18n="credentials">Access keys</button>
+      <button type="button" data-tab="audit" data-i18n="audit">Activity</button>
+    </nav>
+    <section id="panel-accounts" class="panel">
+      <div class="panel-heading">
+        <h2 data-i18n="accounts">Publishers</h2>
+        <input id="search" type="search" data-i18n-placeholder="search" placeholder="Search publishers">
+      </div>
+      <div id="accounts" class="records" aria-live="polite"></div>
+    </section>
+    <section id="panel-credentials" class="panel" hidden>
+      <div class="panel-heading"><h2 data-i18n="credentials">Access keys</h2></div>
+      <div id="credentials" class="records" aria-live="polite"></div>
+    </section>
+    <section id="panel-audit" class="panel" hidden>
+      <div class="panel-heading"><h2 data-i18n="audit">Activity</h2></div>
+      <div id="audit" class="records" aria-live="polite"></div>
+    </section>
+    <div id="notice" class="notice" role="alert" hidden></div>
+  </main>
+  <dialog id="key-dialog">
+    <div class="dialog-inner">
+      <h2 data-i18n="oneTimeKey">Copy this key now. It cannot be viewed again.</h2>
+      <output id="one-time-key" dir="ltr"></output>
+      <div class="dialog-buttons">
+        <button id="copy-key" type="button" data-i18n="copy">Copy</button>
+        <button id="close-key" type="button" data-i18n="close">Close</button>
+      </div>
+    </div>
+  </dialog>
+</body>
+</html>
