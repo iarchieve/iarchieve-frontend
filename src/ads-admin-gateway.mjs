@@ -85,7 +85,7 @@ export function createAdminGateway({ verify = verifyAdminAccess } = {}) {
         return json({ error: "not_found" }, 404);
       }
 
-      if (url.search || url.hash) {
+      if (request.method !== "GET" && (url.search || url.hash)) {
         return json({ error: "invalid_request" }, 400);
       }
 
@@ -170,12 +170,17 @@ export function createAdminGateway({ verify = verifyAdminAccess } = {}) {
           method: request.method,
           headers,
           body: request.method === "GET" ? undefined : body,
-          redirect: "error"
+          redirect: "manual"
         }
       );
 
       try {
         const response = await backend.fetch(downstream);
+
+        // Never follow or expose backend redirects.
+        if (response.status >= 300 && response.status < 400) {
+          return json({ error: "backend_redirect_blocked" }, 502);
+        }
 
         const contentType = response.headers.get("Content-Type") || "";
         if (!contentType.toLowerCase().includes("application/json")) {

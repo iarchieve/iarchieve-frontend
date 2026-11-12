@@ -81,7 +81,7 @@ function showTab(tab) {
     else el.removeAttribute("aria-current");
   });
   render();
-  if (session && tab === "credentials" && selectedPublisher) loadCredentials();
+  if (session && tab === "credentials") loadCredentials();
   if (session && tab === "audit") loadAudit();
 }
 
@@ -114,35 +114,56 @@ async function connect() {
   $("notice").hidden = true;
   $("connection").textContent = tr("loading");
 
+  // Authentication failure must be handled separately.
   try {
-    // This endpoint must be implemented server-side before enabling management.
-    // No administrator API key is sent to or stored in the browser.
     const response = await fetch("/api/ads/admin/session", {
       credentials: "same-origin",
       cache: "no-store",
       redirect: "error"
     });
 
-    if (!response.ok) throw new Error("Session unavailable");
+    if (!response.ok) {
+      throw new Error(`Session HTTP ${response.status}`);
+    }
 
     const data = await response.json();
+
     if (data.authenticated !== true || !data.csrf_token) {
       throw new Error("Session not authenticated");
     }
 
-    session = { authenticated: true, csrf_token: data.csrf_token };
-    await loadAccounts();
-    $("connection").textContent = "";
-    if (activeTab === "audit") await loadAudit();
-    if (activeTab === "credentials" && selectedPublisher) await loadCredentials();
-  } catch {
+    session = {
+      authenticated: true,
+      csrf_token: data.csrf_token
+    };
+  } catch (error) {
+    console.error("Administrator session:", error.message);
     session = null;
     accounts = [];
     $("connection").textContent = tr("accessRequired");
     render();
+    return;
+  }
+
+  // A data-loading error must never erase a valid session.
+  $("connection").textContent = "";
+
+  try {
+    await loadAccounts();
+
+    if (activeTab === "audit") {
+      await loadAudit();
+    }
+
+    if (activeTab === "credentials") {
+      await loadCredentials();
+    }
+  } catch (error) {
+    console.error("Administrator data load:", error.message);
+    message("connectionUnavailable");
+    render();
   }
 }
-
 async function loadAccounts() {
   const data = await api("/api/ads/admin/publishers");
   accounts = Array.isArray(data.items) ? data.items : [];
@@ -241,7 +262,7 @@ async function keyAction(type, credentialId) {
   try {
     const data = await api(path, {
       method: "POST",
-      body: type === "issue" ? { publisher_id: selectedPublisher.id } : undefined
+      body: type === "issue" ? { publisher_id: selectedPublisher.id } : {}
     });
 
     if (data.token) revealKey(data.token);
