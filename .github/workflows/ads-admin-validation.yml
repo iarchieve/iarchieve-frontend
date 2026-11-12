@@ -1,0 +1,68 @@
+name: Advertising Admin Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          path: iarchieve-frontend
+          persist-credentials: false
+
+      - name: Checkout backend for integration tests
+        uses: actions/checkout@v4
+        with:
+          repository: iarchieve/iarchieve-backend
+          ref: main
+          path: iarchieve-backend
+          persist-credentials: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate JavaScript and tests
+        working-directory: iarchieve-frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check public/ads/admin.mjs
+          node --check src/ads-admin-worker.mjs
+          mapfile -t tests < <(
+            find tests -maxdepth 1 -name '*.test.mjs' \
+              ! -name 'ads-admin-real-d1.test.mjs' \
+              -print | sort
+          )
+          test "${#tests[@]}" -gt 0
+          node --test "${tests[@]}"
+
+      - name: Validate Cloudflare Worker build only
+        working-directory: iarchieve-frontend
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npx --yes wrangler@4.160.0 deploy \
+            --dry-run \
+            --config wrangler.ads-admin.local.jsonc \
+            --outdir /tmp/iarchieve-admin-build
+
+      - name: Verify protected site files
+        working-directory: iarchieve-frontend
+        run: |
+          test -f public/index.html
+          test -f public/ads/console.html
+          test -f public/ads/admin.html
+          test -f public/ads/admin-i18n.mjs
