@@ -96,7 +96,7 @@ export async function verifyAdminAccess(request, env, options = {}) {
     return null;
   }
 
-  let keys;
+  let keys = [];
 
   try {
     const fetcher = options.fetcher ?? fetch;
@@ -105,13 +105,25 @@ export async function verifyAdminAccess(request, env, options = {}) {
       { redirect: "error" }
     );
 
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    keys = Array.isArray(data.keys) ? data.keys : [];
+    if (response.ok) {
+      const data = await response.json();
+      keys = Array.isArray(data.keys) ? data.keys : [];
+    }
   } catch {
-    return null;
+    // Use configured public keys only when remote lookup fails.
   }
+
+  if (!keys.length && typeof env.ADS_ACCESS_JWKS === "string") {
+    try {
+      const configured = JSON.parse(env.ADS_ACCESS_JWKS);
+      keys = Array.isArray(configured.keys) ? configured.keys : [];
+    } catch {
+      return null;
+    }
+  }
+
+  // Never accept unverified JWTs.
+  if (!keys.length) return null;
 
   const jwk = keys.find(key =>
     key.kid === header.kid &&

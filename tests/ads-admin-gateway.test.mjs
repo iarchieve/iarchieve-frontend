@@ -217,12 +217,82 @@ test("missing administrator claim blocks access", async () => {
   assert.equal(calls.length, 0);
 });
 
-test("query strings are not forwarded", async () => {
+test("read-only query strings are ignored and never forwarded", async () => {
   const { env, calls } = environment();
+
   const response = await gateway().fetch(
     request("/api/ads/admin/publishers?debug=true"), env
   );
 
+  assert.equal(response.status, 200);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].path, "/api/ads/admin/publishers");
+});
+
+test("mutation query strings remain blocked", async () => {
+  const { env, calls } = environment();
+
+  const response = await gateway().fetch(
+    request(
+      "/api/ads/admin/publishers/pub-001?debug=true",
+      "PATCH",
+      {
+        headers: {
+          Origin: origin,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ status: "active" })
+      }
+    ),
+    env
+  );
+
   assert.equal(response.status, 400);
   assert.equal(calls.length, 0);
+});
+
+test("session ignores harmless query strings", async () => {
+  const { env, calls } = environment();
+
+  const response = await gateway().fetch(
+    request("/api/ads/admin/session?from=access"), env
+  );
+
+  assert.equal(response.status, 200);
+
+  const data = await response.json();
+  assert.equal(data.authenticated, true);
+  assert.match(data.csrf_token, /^[a-f0-9]{64}$/);
+  assert.equal(calls.length, 0);
+});
+
+test("backend redirects are explicitly rejected", async () => {
+  const { env } = environment();
+
+  env.ADS_BACKEND = {
+    async fetch(request) {
+      assert.equal(request.redirect, "manual");
+
+      return Response.json(
+        { error: "redirect" },
+        {
+          status: 302,
+          headers: {
+            Location: "https://untrusted.example.test"
+          }
+        }
+      );
+    }
+  };
+
+  const response = await gateway().fetch(
+    request("/api/ads/admin/publishers"),
+    env
+  );
+
+  assert.equal(response.status, 502);
+
+  const data = await response.json();
+  assert.equal(data.error, "backend_redirect_blocked");
+  assert.equal(response.headers.get("Location"), null);
 });
